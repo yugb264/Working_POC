@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { showSuccess, showError } from "../utils/toast";
 import { useModal } from "../utils/modals/useModal";
 import { useNavigate } from "react-router-dom";
+import { parseApiError } from "../utils/errorParser";
 
 const VersionHistory = forwardRef(({
   documentId,
@@ -40,23 +41,30 @@ const VersionHistory = forwardRef(({
   };
   const deleteHandlers = {
     document: async (id) => {
-      await apiClient.delete(`/document/${id}`);
-      setDocuments(prev => prev.filter(d => d.id !== id));
-      if (id === documentId) navigate('/');
-      showSuccess("Document deleted successfully!");
+      try {
+        await apiClient.delete(`/document/${id}`);
+        setDocuments(prev => prev.filter(d => d.id !== id));
+        if (id === documentId) navigate('/');
+        showSuccess("Document deleted successfully!");
+      } catch (error) {
+        showError(parseApiError(error, "Failed to delete document"));
+      }
     },
     version: async (id) => {
-      await apiClient.delete(`/document/${documentId}/versions/${id}`);
-      setVersions(prev => {
-        const nextVersions = prev.filter(v => v.id !== id);
-        versionsRef.current = nextVersions;
-        return nextVersions;
-      });
-      if (selectedVersionId === id) {
-        navigate(`/document/${documentId}`); // ✅ fix selection
+      try {
+        await apiClient.delete(`/document/${documentId}/versions/${id}`);
+        setVersions(prev => {
+          const nextVersions = prev.filter(v => v.id !== id);
+          versionsRef.current = nextVersions;
+          return nextVersions;
+        });
+        if (selectedVersionId === id) {
+          navigate(`/document/${documentId}`); // ✅ fix selection
+        }
+        showSuccess("Version deleted successfully!");
+      } catch (error) {
+        showError(parseApiError(error, "Failed to delete version"));
       }
-
-      showSuccess("Version deleted successfully!");
     }
   };
 
@@ -82,7 +90,7 @@ const VersionHistory = forwardRef(({
         setDocuments(res.data.data || []);
       } catch (err) {
         console.error("Could not fetch documents:", err);
-        showError("Failed to load documents");
+        showError(parseApiError(err, "Failed to load documents"));
       } finally {
         setLoadingDocs(false);
       }
@@ -125,8 +133,8 @@ const VersionHistory = forwardRef(({
 
       return { hasNewVersion, latestVersionId };
 
-    } catch {
-      showError("Failed to load version history");
+    } catch (err) {
+      showError(parseApiError(err, "Failed to load version history"));
       return { hasNewVersion: false, latestVersionId: null };
     } finally {
       setLoadingVersions(false);
@@ -142,6 +150,10 @@ const VersionHistory = forwardRef(({
   const handleCompareClick = (version) => {
     if (!compareFrom) {
       setCompareFrom(version);
+    } else if (compareFrom.id === version.id) {
+      // Deselect if clicking the same version again and show error
+      showError("You cannot compare same versions");
+      setCompareFrom(null);
     } else {
       // Trigger compare
       onCompare(compareFrom, version);

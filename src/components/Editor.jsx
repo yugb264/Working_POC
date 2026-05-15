@@ -4,6 +4,7 @@ import { FileText } from 'lucide-react';
 import toast from "react-hot-toast";
 import apiClient from "../service/apiclient";
 import { ONLYOFFICE_DOCUMENT_SERVER_URL } from "../config/appConfig";
+import { parseApiError } from "../utils/errorParser";
 
 export default function Editor({ documentId, versionId }) {
   console.log("EDITOR RENDER:", {
@@ -105,8 +106,9 @@ export default function Editor({ documentId, versionId }) {
 
       } catch (err) {
         console.error(err);
-        toast.error("Failed to load document");
-        setError("Failed to load document config.");
+        const errorMsg = parseApiError(err, "Failed to load document config.");
+        toast.error(errorMsg);
+        setError(errorMsg);
       }
     };
 

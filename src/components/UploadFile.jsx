@@ -3,6 +3,8 @@ import { UploadCloud, CheckCircle } from 'lucide-react';
 import apiClient from '../service/apiclient';
 import toast from "react-hot-toast";
 import { showSuccess } from '../utils/toast';
+import { parseApiError } from '../utils/errorParser';
+
 export default function UploadFile({ onUploadSuccess }) {
   const [isUploading, setIsUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
@@ -32,7 +34,7 @@ export default function UploadFile({ onUploadSuccess }) {
     } catch (error) {
       console.error('Error uploading document:', error);
       setStatus('error');
-      toast.error("Upload failed ❌");
+      toast.error(parseApiError(error, "Upload failed ❌"));
     } finally {
       setIsUploading(false);
     }
