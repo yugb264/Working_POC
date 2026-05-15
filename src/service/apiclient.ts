@@ -42,11 +42,15 @@ apiClient.interceptors.response.use(
       if (status === 401) {
         console.warn("🔐 Session expired or unauthorized → logging out");
   
-        // Clear session if needed
-        localStorage.clear();
-  
-        // Redirect to login
-        window.location.href = "/";
+        // Proper MSAL logout instead of nuking localStorage
+        const accounts = msalInstance.getAllAccounts();
+        if (accounts.length > 0) {
+           msalInstance.logoutRedirect({
+              account: accounts[0]
+           });
+        } else {
+           window.location.href = "/";
+        }
       }
   
       // ❗ Other errors (optional handling)
