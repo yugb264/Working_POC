@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate, useLocation, matchPath } from "react-router-dom";
 import UploadFile from "./components/UploadFile";
 import VersionHistory from "./components/VersionHistory";
 import Editor from "./components/Editor";
@@ -7,38 +8,47 @@ import { ModalProvider } from "./utils/modals/ModalProvider";
 import { startConnection, getConnection } from "./service/signalrService";
 
 export default function ProtectedApp() {
-  const [activeDoc, setActiveDoc] = useState(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const { instance } = useMsal();
   const versionRef = useRef();
-  const [compareMode, setCompareMode] = useState(false);
-  const [compareVersions, setCompareVersions] = useState(null);
-  const safeSetActiveDoc = (doc) => {
-    console.log("🧠 Setting activeDoc:", doc);
+  
+  const navigate = useNavigate();
+  const location = useLocation();
 
-    // ✅ EXIT compare mode when switching
-    setCompareMode(false);
-    setCompareVersions(null);
+  // --- Router-driven State ---
+  const docMatch = matchPath("/document/:documentId", location.pathname);
+  const docVerMatch = matchPath("/document/:documentId/version/:versionId", location.pathname);
+  const compMatch = matchPath("/compare/:documentId/:leftVersionId/:rightVersionId", location.pathname);
 
-    setActiveDoc({
-      documentId: doc?.documentId ?? null,
-      versionId: doc?.versionId ?? null
-    });
-  };
+  let activeDocId = null;
+  let activeVersionId = null;
+  let isCompareMode = false;
+  let compareLeftId = null;
+  let compareRightId = null;
+
+  if (compMatch) {
+    activeDocId = Number(compMatch.params.documentId);
+    isCompareMode = true;
+    compareLeftId = Number(compMatch.params.leftVersionId);
+    compareRightId = Number(compMatch.params.rightVersionId);
+  } else if (docVerMatch) {
+    activeDocId = Number(docVerMatch.params.documentId);
+    activeVersionId = Number(docVerMatch.params.versionId);
+  } else if (docMatch) {
+    activeDocId = Number(docMatch.params.documentId);
+  }
+
+  // Read full version objects from router state if available (for displaying version numbers)
+  const compareState = location.state;
+
   const handleLogout = () => {
     instance.logoutRedirect();
   };
 
   const handleUploadSuccess = (doc) => {
     console.log("📤 Upload success:", doc);
-
-    // ✅ 1. Open editor FIRST
-    safeSetActiveDoc({
-      documentId: doc.documentId ?? doc.id,
-      versionId: null
-    });
-
-    // ✅ 2. Then refresh sidebar AFTER slight delay
+    navigate(`/document/${doc.documentId ?? doc.id}`);
+    
     setTimeout(() => {
       setRefreshTrigger(prev => prev + 1);
     }, 100);
@@ -46,25 +56,17 @@ export default function ProtectedApp() {
 
   const handleCompare = (v1, v2) => {
     console.log("⚖️ Compare mode ON", v1, v2);
-
-    setCompareVersions({
-      left: v1,
-      right: v2
+    navigate(`/compare/${v1.documentId}/${v1.id}/${v2.id}`, {
+      state: { left: v1, right: v2 }
     });
-
-    setCompareMode(true);
   };
-
 
   useEffect(() => {
     let conn;
-
     const init = async () => {
       conn = await startConnection();
     };
-
     init();
-
     return () => {
       conn?.stop();
     };
@@ -73,195 +75,103 @@ export default function ProtectedApp() {
   useEffect(() => {
     const conn = getConnection();
 
-    if (!conn || !activeDoc?.documentId) return;
+    if (!conn || !activeDocId) return;
 
-    const docId = activeDoc.documentId.toString();
+    const docIdStr = activeDocId.toString();
 
     if (conn.state !== "Connected") {
       console.log("⏳ Waiting for SignalR connection...");
       return;
     }
 
-    console.log("📡 Joining SignalR group:", docId);
-
-    conn.invoke("JoinDocumentGroup", docId);
+    console.log("📡 Joining SignalR group:", docIdStr);
+    conn.invoke("JoinDocumentGroup", docIdStr);
 
     conn.on("DocumentUpdated", async (data) => {
       console.log("🔥 Real-time update received:", data);
 
-      if (data.documentId === activeDoc.documentId) {
+      if (data.documentId === activeDocId) {
         const refreshResult = await versionRef.current?.refreshVersions?.();
 
-        if (refreshResult?.hasNewVersion) {
-
+        if (refreshResult?.hasNewVersion && !isCompareMode) {
           console.log("🚀 Switching to latest version");
           const latestVersionId =
             refreshResult.latestVersionId ??
             await versionRef.current?.getLatestVersionId?.();
-          // 2. AUTO SWITCH to latest version
-          safeSetActiveDoc({
-            documentId: data.documentId,
-            versionId: latestVersionId  // null = latest
-          });
+          
+          navigate(`/document/${data.documentId}/version/${latestVersionId}`);
         }
       }
     });
 
     return () => {
-      console.log("🚪 Leaving group:", docId);
-      conn.invoke("LeaveDocumentGroup", docId);
+      console.log("🚪 Leaving group:", docIdStr);
+      conn.invoke("LeaveDocumentGroup", docIdStr);
       conn.off("DocumentUpdated");
     };
-  }, [activeDoc?.documentId]);
+  }, [activeDocId, isCompareMode, navigate]);
+
   return (
     <ModalProvider>
-      <div
-        style={{
-          height: "100vh",
-          display: "flex",
-          flexDirection: "column"
-        }}
-      >
-
+      <div style={{ height: "100vh", display: "flex", flexDirection: "column" }}>
+        
         {/* HEADER */}
-        <div
-          style={{
-            height: 60,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "0 20px",
-            background: "rgba(255,255,255,0.05)",
-            backdropFilter: "blur(10px)",
-            borderBottom: "1px solid rgba(255,255,255,0.1)"
-          }}
-        >
+        <div style={{ height: 60, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px", background: "rgba(255,255,255,0.05)", backdropFilter: "blur(10px)", borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
           <h2 style={{ margin: 0 }}>📄 MyOffice Docs</h2>
-
-          <button
-            onClick={handleLogout}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              padding: "8px 14px",
-              borderRadius: "8px",
-              border: "none",
-              cursor: "pointer",
-              fontWeight: 500,
-              background: "#ef4444",
-              color: "white",
-              transition: "0.2s"
-            }}
-            onMouseEnter={e => e.currentTarget.style.background = "#dc2626"}
-            onMouseLeave={e => e.currentTarget.style.background = "#ef4444"}
-          >
+          <button onClick={handleLogout} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 14px", borderRadius: "8px", border: "none", cursor: "pointer", fontWeight: 500, background: "#ef4444", color: "white", transition: "0.2s" }} onMouseEnter={e => e.currentTarget.style.background = "#dc2626"} onMouseLeave={e => e.currentTarget.style.background = "#ef4444"}>
             🚪 Logout
           </button>
         </div>
 
         {/* BODY */}
         <div style={{ flex: 1, display: "flex" }}>
-
+          
           <aside className="sidebar">
             <UploadFile onUploadSuccess={handleUploadSuccess} />
-
             <VersionHistory
-              documentId={activeDoc?.documentId}
-              onSelectDocument={safeSetActiveDoc}
-              selectedVersionId={activeDoc?.versionId}
+              documentId={activeDocId}
+              selectedVersionId={activeVersionId}
               refreshTrigger={refreshTrigger}
               onCompare={handleCompare}
-              compareVersions={compareVersions}
+              compareVersions={isCompareMode ? { left: { id: compareLeftId }, right: { id: compareRightId } } : null}
               ref={versionRef}
             />
           </aside>
 
           <main className="main-content" style={{ position: "relative" }}>
-            {console.log("APP → ACTIVE DOC:", activeDoc)}
-            {compareMode && compareVersions && (
-              <div
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  height: "50px",
-                  background: "rgba(15,23,42,0.95)",
-                  backdropFilter: "blur(8px)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  padding: "0 16px",
-                  zIndex: 20,
-                  borderBottom: "1px solid rgba(255,255,255,0.1)"
-                }}
-              >
+            {isCompareMode && (
+              <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "50px", background: "rgba(15,23,42,0.95)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 16px", zIndex: 20, borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
                 <div style={{ fontSize: "14px", color: "#a5b4fc" }}>
-                  Comparing Version {compareVersions.left.versionNumber} ↔ Version {compareVersions.right.versionNumber}
+                  Comparing Version {compareState?.left?.versionNumber || '?'} ↔ Version {compareState?.right?.versionNumber || '?'}
                 </div>
-
-                <button
-                  onClick={() => {
-                    setCompareMode(false);
-                    setCompareVersions(null);
-                  }}
-                  style={{
-                    background: "#ef4444",
-                    color: "#fff",
-                    border: "none",
-                    padding: "6px 12px",
-                    borderRadius: "6px",
-                    cursor: "pointer",
-                    fontSize: "13px"
-                  }}
-                >
+                <button onClick={() => navigate(`/document/${activeDocId}`)} style={{ background: "#ef4444", color: "#fff", border: "none", padding: "6px 12px", borderRadius: "6px", cursor: "pointer", fontSize: "13px" }}>
                   Exit Compare
                 </button>
               </div>
             )}
        
-
             {/*  COMPARE MODE */}
-            {compareMode && compareVersions ? (
+            {isCompareMode ? (
               <div style={{ display: "flex", gap: "10px", height: "100%",  paddingTop: "50px" }}>
-
-                {/* LEFT */}
                 <div style={{ flex: 1 }}>
                   <div style={{ padding: "6px", fontSize: "12px", color: "#a5b4fc" }}>
-                    Version {compareVersions.left.versionNumber}
+                    Version {compareState?.left?.versionNumber || '?'}
                   </div>
-                  {compareVersions.left && (
-                    <Editor
-                      key={`left-${compareVersions.left.id}`}
-                      documentId={compareVersions.left.documentId}
-                      versionId={compareVersions.left.id}
-                    />
-                  )}
+                  <Editor key={`left-${compareLeftId}`} documentId={activeDocId} versionId={compareLeftId} />
                 </div>
 
-                {/* RIGHT */}
                 <div style={{ flex: 1 }}>
                   <div style={{ padding: "6px", fontSize: "12px", color: "#a5b4fc" }}>
-                    Version {compareVersions.right.versionNumber}
+                    Version {compareState?.right?.versionNumber || '?'}
                   </div>
-
-                  {compareVersions.right && (
-                    <Editor
-                      key={`right-${compareVersions.right.id}`}
-                      documentId={compareVersions.right.documentId}
-                      versionId={compareVersions.right.id}
-                    />
-                  )}
+                  <Editor key={`right-${compareRightId}`} documentId={activeDocId} versionId={compareRightId} />
                 </div>
-
               </div>
             ) : (
-
               <Editor
-                key={`${activeDoc?.documentId || "none"}-${activeDoc?.versionId || "latest"}`}
-                documentId={activeDoc?.documentId}
-                versionId={activeDoc?.versionId}
+                key={`${activeDocId || "none"}-${activeVersionId || "latest"}`}
+                documentId={activeDocId}
+                versionId={activeVersionId}
               />
             )}
           </main>

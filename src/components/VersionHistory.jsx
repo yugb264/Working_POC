@@ -4,12 +4,11 @@ import { History, Clock, User, FileText } from 'lucide-react';
 import apiClient from "../service/apiclient";
 import { motion } from "framer-motion";
 import { showSuccess, showError } from "../utils/toast";
-
 import { useModal } from "../utils/modals/useModal";
+import { useNavigate } from "react-router-dom";
 
 const VersionHistory = forwardRef(({
   documentId,
-  onSelectDocument,
   selectedVersionId,
   refreshTrigger,
   onCompare,
@@ -30,22 +29,20 @@ const VersionHistory = forwardRef(({
 
   const latestVersionRef = useRef(0);
   const versionsRef = useRef([]);
+  const navigate = useNavigate();
+
   const handleDocumentClick = (id) => {
-    onSelectDocument?.({ documentId: id, versionId: null });
+    navigate(`/document/${id}`);
   };
   const handleVersionClick = (versionId) => {
     console.log("📌 Version clicked:", versionId);
-    onSelectDocument?.({
-      documentId,
-      versionId: Number(versionId), //  force clean number
-
-    });
+    navigate(`/document/${documentId}/version/${versionId}`);
   };
   const deleteHandlers = {
     document: async (id) => {
       await apiClient.delete(`/document/${id}`);
       setDocuments(prev => prev.filter(d => d.id !== id));
-      if (id === documentId) onSelectDocument?.({ documentId: null, versionId: null });
+      if (id === documentId) navigate('/');
       showSuccess("Document deleted successfully!");
     },
     version: async (id) => {
@@ -56,7 +53,7 @@ const VersionHistory = forwardRef(({
         return nextVersions;
       });
       if (selectedVersionId === id) {
-        onSelectDocument?.({ documentId, versionId: null }); // ✅ fix selection
+        navigate(`/document/${documentId}`); // ✅ fix selection
       }
 
       showSuccess("Version deleted successfully!");
