@@ -15,16 +15,6 @@ export default function ProtectedApp() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Redirect to home if the user hits the browser reload button
-  useEffect(() => {
-    const navEntries = performance.getEntriesByType("navigation");
-    if (navEntries.length > 0 && navEntries[0].type === "reload") {
-      if (location.pathname !== "/") {
-        navigate("/", { replace: true });
-      }
-    }
-  }, [navigate, location.pathname]);
-
   // --- Router-driven State ---
   const docMatch = matchPath("/document/:documentId", location.pathname);
   const docVerMatch = matchPath("/document/:documentId/version/:versionId", location.pathname);
@@ -47,6 +37,25 @@ export default function ProtectedApp() {
   } else if (docMatch) {
     activeDocId = Number(docMatch.params.documentId);
   }
+
+  useEffect(() => {
+    // Detect browser refresh
+    const navEntries = performance.getEntriesByType("navigation");
+  
+    const isRefresh =
+      navEntries.length > 0 &&
+      navEntries[0].type === "reload";
+  
+    // If user refreshed while inside document routes
+    if (
+      isRefresh &&
+      (docMatch || docVerMatch || compMatch)
+    ) {
+      console.log("🔄 Page refreshed on document route → redirecting home");
+  
+      navigate("/", { replace: true });
+    }
+  }, []);
 
   // Read full version objects from router state if available (for displaying version numbers)
   const compareState = location.state;
