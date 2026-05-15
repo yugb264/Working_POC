@@ -1,12 +1,11 @@
 // documentService.ts
 
 import axios, { AxiosInstance } from "axios";
+import { API_BASE_URL } from "../config/appConfig";
 
 // ============================
 // AXIOS INSTANCE
 // ============================
-
-const API_BASE_URL =  "http://localhost:5000/api";
 
 const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,

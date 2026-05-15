@@ -6,6 +6,7 @@ import { useAuthToken } from "../service/authService";
 import { useRef } from "react";
 // import { API_BASE_URL } from "../config/apiconfig";
 import apiClient from "../service/apiclient";
+import { ONLYOFFICE_DOCUMENT_SERVER_URL } from "../config/appConfig";
 
 export default function Editor({ documentId, versionId }) {
   console.log("EDITOR RENDER:", {
@@ -165,7 +166,7 @@ export default function Editor({ documentId, versionId }) {
         <DocumentEditor
           key={editorKey}
           id={`docxEditor_${documentId}_${versionId || "latest"}_${editorKey}`}
-          documentServerUrl="http://localhost/"
+          documentServerUrl={ONLYOFFICE_DOCUMENT_SERVER_URL}
           config={config}
           events_onDocumentReady={onDocumentReady}
           height="100%"

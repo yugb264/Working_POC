@@ -1,4 +1,5 @@
 import * as signalR from "@microsoft/signalr";
+import { SIGNALR_HUB_URL } from "../config/appConfig";
 
 let connection = null;
 
@@ -6,7 +7,7 @@ export const startConnection = async () => {
   if (connection) return connection;
 
   connection = new signalR.HubConnectionBuilder()
-    .withUrl("http://localhost:5000/documentHub")
+    .withUrl(SIGNALR_HUB_URL)
     .withAutomaticReconnect()
     .build();
 
