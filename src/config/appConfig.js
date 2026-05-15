@@ -3,6 +3,14 @@ const getEnv = (key, fallback) => {
   return typeof value === "string" && value.trim() ? value.trim() : fallback;
 };
 
+const getRequiredEnv = (key) => {
+  const value = import.meta.env?.[key];
+  if (typeof value !== "string" || !value.trim()) {
+    throw new Error(`❌ Missing required environment variable: ${key}. Check your .env file.`);
+  }
+  return value.trim();
+};
+
 const getEnvList = (key, fallback) => {
   const value = import.meta.env?.[key];
 
@@ -13,6 +21,8 @@ const getEnvList = (key, fallback) => {
     .map((item) => item.trim())
     .filter(Boolean);
 };
+
+// --- Non-sensitive service URLs (safe localhost fallbacks for dev) ---
 
 export const API_BASE_URL = getEnv(
   "VITE_API_BASE_URL",
@@ -29,15 +39,11 @@ export const ONLYOFFICE_DOCUMENT_SERVER_URL = getEnv(
   "http://localhost/"
 );
 
-export const MSAL_CLIENT_ID = getEnv(
-  "VITE_MSAL_CLIENT_ID",
-  "12dd1eb5-32c5-488d-82f3-fbdcefd7ad19"
-);
+// --- Sensitive Azure AD credentials (MUST be set in .env) ---
 
-export const MSAL_AUTHORITY = getEnv(
-  "VITE_MSAL_AUTHORITY",
-  "https://login.microsoftonline.com/7eb749a1-a2ec-4260-bb87-c77c7a0a0b7a"
-);
+export const MSAL_CLIENT_ID = getRequiredEnv("VITE_MSAL_CLIENT_ID");
+
+export const MSAL_AUTHORITY = getRequiredEnv("VITE_MSAL_AUTHORITY");
 
 export const MSAL_REDIRECT_URI = getEnv(
   "VITE_MSAL_REDIRECT_URI",
