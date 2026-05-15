@@ -43,9 +43,39 @@ export default function UploadFile({ onUploadSuccess }) {
     setStatus(null);
   };
 
+  const validateFile = (file) => {
+    if (!file) return false;
+
+    // Check extension
+    if (!file.name.toLowerCase().endsWith('.docx')) {
+      toast.error("Only .docx files are allowed ❌");
+      return false;
+    }
+
+    // Check MIME type (allow empty type for OS drag-and-drop quirks, but block invalid ones)
+    const validMimeTypes = [
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/x-zip-compressed", // Some browsers mistakenly classify docx as this
+      "application/zip",
+      "" 
+    ];
+
+    if (!validMimeTypes.includes(file.type)) {
+      toast.error("Invalid file format ❌");
+      return false;
+    }
+
+    return true;
+  };
+
   const handleFileSelect = (file) => {
-    if (!file) return;
-    setSelectedFile(file);
+    if (validateFile(file)) {
+      setSelectedFile(file);
+    } else {
+      // Clear input value so same file can be selected again
+      const input = document.querySelector('input[type="file"]');
+      if (input) input.value = '';
+    }
   };
 
   const handleDrag = (e) => {
@@ -61,7 +91,9 @@ export default function UploadFile({ onUploadSuccess }) {
     setDragActive(false);
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const file = e.dataTransfer.files[0];
-    setSelectedFile(file);
+      if (validateFile(file)) {
+        setSelectedFile(file);
+      }
     }
   };
 
