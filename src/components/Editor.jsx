@@ -1,10 +1,7 @@
-import React, { useEffect, useState } from "react";
-import axios from "axios";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { DocumentEditor } from "@onlyoffice/document-editor-react";
 import { FileText } from 'lucide-react';
-import { useAuthToken } from "../service/authService";
-import { useRef } from "react";
-// import { API_BASE_URL } from "../config/apiconfig";
+import toast from "react-hot-toast";
 import apiClient from "../service/apiclient";
 import { ONLYOFFICE_DOCUMENT_SERVER_URL } from "../config/appConfig";
 
@@ -14,21 +11,15 @@ export default function Editor({ documentId, versionId }) {
     versionId
   });
 
-  // const { getToken } = useAuthToken();
   const [config, setConfig] = useState(null);
   const [isSwitching, setIsSwitching] = useState(false);
   const [error, setError] = useState(null);
   const [editorKey, setEditorKey] = useState(0);
-  const saveTimeoutRef = useRef(null);
-  const isUserSavingRef = useRef(false);
-  const manualSaveRef = useRef(false);
-  let lastSaveTimeRef = useRef(0);
-  const wasDirtyRef = useRef(false);
-  let saveTriggeredRef = useRef(false);
-  const editStartTimeRef = useRef(null);
-  const destroyEditor = () => {
+  const editorKeyRef = useRef(0);
+  const saveTriggeredRef = useRef(false);
+  const destroyEditor = useCallback(() => {
     try {
-      const id = `docxEditor_${documentId}_${editorKey}`;
+      const id = `docxEditor_${documentId}_${editorKeyRef.current}`;
       const editor = window.DocEditor?.instances?.[id];
 
       if (editor && editor.destroyEditor) {
@@ -37,7 +28,7 @@ export default function Editor({ documentId, versionId }) {
     } catch (e) {
       console.warn("Destroy failed", e);
     }
-  };
+  }, [documentId]);
   useEffect(() => {
 
     if (!documentId) {
@@ -67,8 +58,6 @@ export default function Editor({ documentId, versionId }) {
         if (cleanVersionId) {
           url += `?versionId=${cleanVersionId}`;
         }
-
-        // const token = await getToken();
 
         const res = await apiClient.get(url);
         const returnedConfig = { ...res.data };
@@ -105,8 +94,10 @@ export default function Editor({ documentId, versionId }) {
         let timer;
 
         timer = setTimeout(() => {
+          const nextEditorKey = Date.now();
+          editorKeyRef.current = nextEditorKey;
           setConfig(returnedConfig);
-          setEditorKey(Date.now());
+          setEditorKey(nextEditorKey);
 
           setTimeout(() => {
             setIsSwitching(false); // hide overlay AFTER mount
@@ -126,7 +117,7 @@ export default function Editor({ documentId, versionId }) {
 
 
 
-  }, [documentId, versionId]);
+  }, [documentId, versionId, destroyEditor]);
 
 
   const onDocumentReady = () => {

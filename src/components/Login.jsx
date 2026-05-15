@@ -1,7 +1,5 @@
-import React from "react";
 import { useMsal } from "@azure/msal-react";
 import { loginRequest } from "../config/authConfig";
-import { LogIn } from "lucide-react";
 
 export default function Login() {
   const { instance } = useMsal();

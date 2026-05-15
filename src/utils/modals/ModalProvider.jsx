@@ -1,7 +1,6 @@
-import React, { createContext, useContext, useState } from "react";
+import { useState } from "react";
 import ConfirmDialog from "./ConfirmDialog";
-
-export const ModalContext = createContext();
+import { ModalContext } from "./ModalContext";
 
 export function ModalProvider({ children }) {
     const [modal, setModal] = useState(null);
@@ -40,5 +39,3 @@ export function ModalProvider({ children }) {
         </ModalContext.Provider>
     );
 }
-
-export const useModal = () => useContext(ModalContext);

@@ -1,11 +1,11 @@
-import React, { useEffect, useState, forwardRef, useImperativeHandle, useRef } from "react";
+import { useCallback, useEffect, useState, forwardRef, useImperativeHandle, useRef } from "react";
 import { History, Clock, User, FileText } from 'lucide-react';
 // import { API_BASE_URL } from "../config/apiconfig";
 import apiClient from "../service/apiclient";
 import { motion } from "framer-motion";
 import { showSuccess, showError } from "../utils/toast";
 
-import { useModal } from "../utils/modals/ModalProvider";
+import { useModal } from "../utils/modals/useModal";
 
 const VersionHistory = forwardRef(({
   documentId,
@@ -29,6 +29,7 @@ const VersionHistory = forwardRef(({
   const [compareFrom, setCompareFrom] = useState(null);
 
   const latestVersionRef = useRef(0);
+  const versionsRef = useRef([]);
   const handleDocumentClick = (id) => {
     onSelectDocument?.({ documentId: id, versionId: null });
   };
@@ -49,7 +50,11 @@ const VersionHistory = forwardRef(({
     },
     version: async (id) => {
       await apiClient.delete(`/document/${documentId}/versions/${id}`);
-      setVersions(prev => prev.filter(v => v.id !== id));
+      setVersions(prev => {
+        const nextVersions = prev.filter(v => v.id !== id);
+        versionsRef.current = nextVersions;
+        return nextVersions;
+      });
       if (selectedVersionId === id) {
         onSelectDocument?.({ documentId, versionId: null }); // ✅ fix selection
       }
@@ -88,9 +93,10 @@ const VersionHistory = forwardRef(({
 
     fetchDocs();
   }, [refreshTrigger]);
-  const fetchVersions = async () => {
+  const fetchVersions = useCallback(async () => {
     if (!documentId) {
       setVersions([]);
+      versionsRef.current = [];
       return { hasNewVersion: false, latestVersionId: null };
     }
 
@@ -101,6 +107,7 @@ const VersionHistory = forwardRef(({
       const newData = res.data.data || [];
       const newLatest = newData[0]?.versionNumber || 0;
       const latestVersionId = newData[0]?.id || null;
+      const previousVersions = versionsRef.current;
       console.log("📊 OLD versions state:", versions);
       console.log("📊 NEW API data:", newData);
 
@@ -110,28 +117,31 @@ const VersionHistory = forwardRef(({
       console.log("🧠 newLatest:", newLatest);
 
       const hasNewVersion =
-        newData.length > versions.length ||
+        newData.length > previousVersions.length ||
         newLatest > prevLatest;
 
       console.log("🚨 hasNewVersion:", hasNewVersion);
 
       setVersions(newData);
+      versionsRef.current = newData;
       latestVersionRef.current = newLatest;
 
       return { hasNewVersion, latestVersionId };
 
-    } catch (err) {
+    } catch {
       showError("Failed to load version history");
       return { hasNewVersion: false, latestVersionId: null };
     } finally {
       setLoadingVersions(false);
     }
-  };
+  // The logged `versions` value is diagnostic only; version comparison uses versionsRef.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [documentId]);
 
   // 🕒 Fetch version history
   useEffect(() => {
     fetchVersions();
-  }, [documentId]);
+  }, [fetchVersions]);
   const handleCompareClick = (version) => {
     if (!compareFrom) {
       setCompareFrom(version);
@@ -449,4 +459,7 @@ const VersionHistory = forwardRef(({
     </div>
   );
 });
+
+VersionHistory.displayName = "VersionHistory";
+
 export default VersionHistory;

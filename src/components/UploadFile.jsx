@@ -1,13 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { useState } from 'react';
 import { UploadCloud, CheckCircle } from 'lucide-react';
-import { useAuthToken } from '../service/authService';
-import { API_BASE_URL } from '../config/apiconfig';
 import apiClient from '../service/apiclient';
 import toast from "react-hot-toast";
 import { showSuccess } from '../utils/toast';
 export default function UploadFile({ onUploadSuccess }) {
-  // const { getToken } = useAuthToken();
   const [isUploading, setIsUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [status, setStatus] = useState(null); // 'success' or 'error'
@@ -24,12 +20,6 @@ export default function UploadFile({ onUploadSuccess }) {
     formData.append('file', selectedFile);
 
     try {
-      // const token = await getToken();
-      // const res = await axios.post(`${API_BASE_URL}/document/upload`, formData, {
-      //   // headers: {
-      //   //   Authorization: `Bearer ${token}`
-      //   // }
-      // });
       const res = await apiClient.post(`/document/upload`, formData);
       setStatus('success');
       console.log("🔥 Toast should fire now");

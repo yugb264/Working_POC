@@ -1,11 +1,9 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import UploadFile from "./components/UploadFile";
 import VersionHistory from "./components/VersionHistory";
 import Editor from "./components/Editor";
 import { useMsal } from "@azure/msal-react";
 import { ModalProvider } from "./utils/modals/ModalProvider";
-import { useRef } from "react";
-import apiClient from "./service/apiclient";
 import { startConnection, getConnection } from "./service/signalrService";
 
 export default function ProtectedApp() {
@@ -92,14 +90,14 @@ export default function ProtectedApp() {
       console.log("🔥 Real-time update received:", data);
 
       if (data.documentId === activeDoc.documentId) {
-        const result = await versionRef.current?.refreshVersions();
-        // 1. Refresh versions
-        const hasNew = await versionRef.current?.refreshVersions();
+        const refreshResult = await versionRef.current?.refreshVersions?.();
 
-        if (hasNew) {
+        if (refreshResult?.hasNewVersion) {
 
           console.log("🚀 Switching to latest version");
-          const latestVersionId = await versionRef.current?.getLatestVersionId?.();
+          const latestVersionId =
+            refreshResult.latestVersionId ??
+            await versionRef.current?.getLatestVersionId?.();
           // 2. AUTO SWITCH to latest version
           setActiveDoc({
             documentId: data.documentId,
