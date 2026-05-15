@@ -30,6 +30,7 @@ export default function Editor({ documentId, versionId }) {
     }
   }, [documentId]);
   useEffect(() => {
+    let timer;
 
     if (!documentId) {
       destroyEditor();
@@ -91,8 +92,6 @@ export default function Editor({ documentId, versionId }) {
         };
 
         // ✅ small delay REQUIRED for OnlyOffice
-        let timer;
-
         timer = setTimeout(() => {
           const nextEditorKey = Date.now();
           editorKeyRef.current = nextEditorKey;
@@ -104,8 +103,6 @@ export default function Editor({ documentId, versionId }) {
           }, 400);
         }, 200);
 
-        return () => clearTimeout(timer);
-
       } catch (err) {
         console.error(err);
         toast.error("Failed to load document");
@@ -115,7 +112,9 @@ export default function Editor({ documentId, versionId }) {
 
     loadEditor();
 
-
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
 
   }, [documentId, versionId, destroyEditor]);
 

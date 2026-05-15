@@ -99,7 +99,7 @@ export default function ProtectedApp() {
             refreshResult.latestVersionId ??
             await versionRef.current?.getLatestVersionId?.();
           // 2. AUTO SWITCH to latest version
-          setActiveDoc({
+          safeSetActiveDoc({
             documentId: data.documentId,
             versionId: latestVersionId  // null = latest
           });

@@ -27,11 +27,11 @@ export function ModalProvider({ children }) {
                     message={modal.message}
                     onCancel={closeModal}
                     onConfirm={async () => {
-                        closeModal();                
                         try {
                             await modal.onConfirm?.(); 
+                            closeModal();                
                         } catch (err) {
-                            console.error(err);
+                            console.error("❌ Modal confirmation error:", err);
                         }
                     }}
                 />
