@@ -15,6 +15,16 @@ export default function ProtectedApp() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Redirect to home if the user hits the browser reload button
+  useEffect(() => {
+    const navEntries = performance.getEntriesByType("navigation");
+    if (navEntries.length > 0 && navEntries[0].type === "reload") {
+      if (location.pathname !== "/") {
+        navigate("/", { replace: true });
+      }
+    }
+  }, [navigate, location.pathname]);
+
   // --- Router-driven State ---
   const docMatch = matchPath("/document/:documentId", location.pathname);
   const docVerMatch = matchPath("/document/:documentId/version/:versionId", location.pathname);
