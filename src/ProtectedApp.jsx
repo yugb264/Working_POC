@@ -6,12 +6,12 @@ import Editor from "./components/Editor";
 import { useMsal } from "@azure/msal-react";
 import { ModalProvider } from "./utils/modals/ModalProvider";
 import { startConnection, getConnection } from "./service/signalrService";
-
+import { LogOut } from "lucide-react";
 export default function ProtectedApp() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const { instance } = useMsal();
   const versionRef = useRef();
-  
+
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -41,18 +41,18 @@ export default function ProtectedApp() {
   useEffect(() => {
     // Detect browser refresh
     const navEntries = performance.getEntriesByType("navigation");
-  
+
     const isRefresh =
       navEntries.length > 0 &&
       navEntries[0].type === "reload";
-  
+
     // If user refreshed while inside document routes
     if (
       isRefresh &&
       (docMatch || docVerMatch || compMatch)
     ) {
       console.log("🔄 Page refreshed on document route → redirecting home");
-  
+
       navigate("/", { replace: true });
     }
   }, []);
@@ -67,7 +67,7 @@ export default function ProtectedApp() {
   const handleUploadSuccess = (doc) => {
     console.log("📤 Upload success:", doc);
     navigate(`/document/${doc.documentId ?? doc.id}`);
-    
+
     setTimeout(() => {
       setRefreshTrigger(prev => prev + 1);
     }, 100);
@@ -117,7 +117,7 @@ export default function ProtectedApp() {
           const latestVersionId =
             refreshResult.latestVersionId ??
             await versionRef.current?.getLatestVersionId?.();
-          
+
           navigate(`/document/${data.documentId}/version/${latestVersionId}`);
         }
       }
@@ -133,18 +133,50 @@ export default function ProtectedApp() {
   return (
     <ModalProvider>
       <div style={{ height: "100vh", display: "flex", flexDirection: "column" }}>
-        
+
         {/* HEADER */}
         <div style={{ height: 60, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px", background: "rgba(255,255,255,0.05)", backdropFilter: "blur(10px)", borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
           <h2 style={{ margin: 0 }}>📄 MyOffice Docs</h2>
-          <button onClick={handleLogout} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 14px", borderRadius: "8px", border: "none", cursor: "pointer", fontWeight: 500, background: "#ef4444", color: "white", transition: "0.2s" }} onMouseEnter={e => e.currentTarget.style.background = "#dc2626"} onMouseLeave={e => e.currentTarget.style.background = "#ef4444"}>
-            🚪 Logout
+          <button
+            onClick={handleLogout}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              padding: "10px 16px",
+              borderRadius: "12px",
+              border: "1px solid rgba(255,255,255,0.12)",
+              background: "rgba(255,255,255,0.08)",
+              backdropFilter: "blur(12px)",
+              WebkitBackdropFilter: "blur(12px)",
+              color: "#f8fafc",
+              cursor: "pointer",
+              fontWeight: 500,
+              fontSize: "14px",
+              transition: "all 0.25s ease",
+              boxShadow: "0 4px 20px rgba(0,0,0,0.15)"
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "rgba(239,68,68,0.18)";
+              e.currentTarget.style.border = "1px solid rgba(239,68,68,0.35)";
+              e.currentTarget.style.transform = "translateY(-1px)";
+              e.currentTarget.style.boxShadow = "0 8px 24px rgba(239,68,68,0.18)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "rgba(255,255,255,0.08)";
+              e.currentTarget.style.border = "1px solid rgba(255,255,255,0.12)";
+              e.currentTarget.style.transform = "translateY(0)";
+              e.currentTarget.style.boxShadow = "0 4px 20px rgba(0,0,0,0.15)";
+            }}
+          >
+           <LogOut size={16} />
+           Logout
           </button>
         </div>
 
         {/* BODY */}
         <div style={{ flex: 1, display: "flex" }}>
-          
+
           <aside className="sidebar">
             <UploadFile onUploadSuccess={handleUploadSuccess} />
             <VersionHistory
@@ -168,10 +200,10 @@ export default function ProtectedApp() {
                 </button>
               </div>
             )}
-       
+
             {/*  COMPARE MODE */}
             {isCompareMode ? (
-              <div style={{ display: "flex", gap: "10px", height: "100%",  paddingTop: "50px" }}>
+              <div style={{ display: "flex", gap: "10px", height: "100%", paddingTop: "50px" }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ padding: "6px", fontSize: "12px", color: "#a5b4fc" }}>
                     Version {compareState?.left?.versionNumber || '?'}
