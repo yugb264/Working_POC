@@ -47,26 +47,6 @@ export default function UploadFile({ onUploadSuccess }) {
 
   const validateFile = (file) => {
     if (!file) return false;
-
-    // Check extension
-    if (!file.name.toLowerCase().endsWith('.docx')) {
-      toast.error("Only .docx files are allowed ❌");
-      return false;
-    }
-
-    // Check MIME type (allow empty type for OS drag-and-drop quirks, but block invalid ones)
-    const validMimeTypes = [
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      "application/x-zip-compressed", // Some browsers mistakenly classify docx as this
-      "application/zip",
-      "" 
-    ];
-
-    if (!validMimeTypes.includes(file.type)) {
-      toast.error("Invalid file format ❌");
-      return false;
-    }
-
     return true;
   };
 
@@ -115,7 +95,6 @@ export default function UploadFile({ onUploadSuccess }) {
       >
         <input
           type="file"
-          accept=".docx"
           onChange={(e) => handleFileSelect(e.target.files[0])}
           disabled={isUploading}
         />
@@ -130,7 +109,7 @@ export default function UploadFile({ onUploadSuccess }) {
         ) : (
           <div style={{ color: 'var(--text-muted)', textAlign: 'center' }}>
             <div>Click or drag file to this area</div>
-            <small>Supports .DOCX files</small>
+            <small>Supports all files</small>
           </div>
         )}
       </div>
