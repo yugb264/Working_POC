@@ -208,14 +208,14 @@ export default function ProtectedApp() {
                   <div style={{ padding: "6px", fontSize: "12px", color: "#a5b4fc" }}>
                     Version {compareState?.left?.versionNumber || '?'}
                   </div>
-                  <Editor key={`left-${compareLeftId}`} documentId={activeDocId} versionId={compareLeftId} />
+                  <Editor key={`left-${compareLeftId}`} documentId={activeDocId} versionId={compareLeftId} isReadOnly />
                 </div>
 
                 <div style={{ flex: 1 }}>
                   <div style={{ padding: "6px", fontSize: "12px", color: "#a5b4fc" }}>
                     Version {compareState?.right?.versionNumber || '?'}
                   </div>
-                  <Editor key={`right-${compareRightId}`} documentId={activeDocId} versionId={compareRightId} />
+                  <Editor key={`right-${compareRightId}`} documentId={activeDocId} versionId={compareRightId} isReadOnly />
                 </div>
               </div>
             ) : (

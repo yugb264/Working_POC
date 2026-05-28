@@ -6,10 +6,11 @@ import apiClient from "../service/apiclient";
 import { ONLYOFFICE_DOCUMENT_SERVER_URL } from "../config/appConfig";
 import { parseApiError } from "../utils/errorParser";
 
-export default function Editor({ documentId, versionId }) {
+export default function Editor({ documentId, versionId, isReadOnly = false }) {
   console.log("EDITOR RENDER:", {
     documentId,
-    versionId
+    versionId,
+    isReadOnly
   });
 
   const [config, setConfig] = useState(null);
@@ -18,6 +19,8 @@ export default function Editor({ documentId, versionId }) {
   const [editorKey, setEditorKey] = useState(0);
   const editorKeyRef = useRef(0);
   const saveTriggeredRef = useRef(false);
+ 
+
   const destroyEditor = useCallback(() => {
     try {
       const id = `docxEditor_${documentId}_${editorKeyRef.current}`;
@@ -64,6 +67,21 @@ export default function Editor({ documentId, versionId }) {
         const res = await apiClient.get(url);
         const returnedConfig = { ...res.data };
 
+        if (isReadOnly) {
+          returnedConfig.editorConfig = {
+            ...returnedConfig.editorConfig,
+            mode: "view"
+          };
+
+          returnedConfig.document = {
+            ...returnedConfig.document,
+            permissions: {
+              ...returnedConfig.document?.permissions,
+              edit: false
+            }
+          };
+        }
+
         returnedConfig.events = {
           onDocumentStateChange(event) {
             console.log("📡 State:", event.data);
@@ -89,6 +107,7 @@ export default function Editor({ documentId, versionId }) {
 
           onError(e) {
             console.error("ONLYOFFICE ERROR", e);
+       
           }
         };
 
@@ -118,7 +137,7 @@ export default function Editor({ documentId, versionId }) {
       if (timer) clearTimeout(timer);
     };
 
-  }, [documentId, versionId, destroyEditor]);
+  }, [documentId, versionId, isReadOnly, destroyEditor]);
 
 
   const onDocumentReady = () => {
@@ -146,10 +165,12 @@ export default function Editor({ documentId, versionId }) {
 
   return (
     <div
+ 
       style={{
         height: "100%",
         transition: "opacity 0.35s ease",
-        opacity: isSwitching ? 0.4 : 1
+        opacity: isSwitching ? 0.4 : 1,
+   
       }}
     >
 
