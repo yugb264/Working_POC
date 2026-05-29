@@ -7,6 +7,7 @@ import { showSuccess, showError } from "../utils/toast";
 import { useModal } from "../utils/modals/useModal";
 import { useNavigate } from "react-router-dom";
 import { parseApiError } from "../utils/errorParser";
+import GlassTooltip from "./GlassTooltip";
 
 const VersionHistory = forwardRef(({
   documentId,
@@ -232,27 +233,29 @@ const VersionHistory = forwardRef(({
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
-                    <div 
-                      onClick={() => handleDocumentClick(doc.id)}
-                      style={{
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        flex: 1
-                      }}
-                      title={doc.fileName}
-                    >
-                      📄 {doc.fileName}
-                    </div>
-                    <motion.button
-                      onClick={(e) => {
-                        e.stopPropagation();
+                    <GlassTooltip title={doc.fileName} arrow placement="top">
+                      <div 
+                        onClick={() => handleDocumentClick(doc.id)}
+                        style={{
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          flex: 1
+                        }}
+                      >
+                        📄 {doc.fileName}
+                      </div>
+                    </GlassTooltip>
+                    <GlassTooltip title="Delete Document" arrow placement="top">
+                      <motion.button
+                        onClick={(e) => {
+                          e.stopPropagation();
 
-                        showConfirm({
+                          showConfirm({
                           title: "Delete Document",
                           message: (
                             <>
-                              Are you sure you want to delete <b>{doc.fileName}</b>?
+                              Are you sure you want to delete <b style={{ wordBreak: 'break-all' }}>{doc.fileName}</b>?
                               <br />
                               <span style={{ fontSize: "0.8rem", opacity: 0.7 }}>
                                 This action cannot be undone.
@@ -279,6 +282,7 @@ const VersionHistory = forwardRef(({
                     >
                       🗑️
                     </motion.button>
+                  </GlassTooltip>
                   </div>
                 </div>
               ))}
@@ -392,10 +396,11 @@ const VersionHistory = forwardRef(({
                       >
                         {compareFrom?.id === v.id ? "Selected" : "Compare"}
                       </button>
-                      <motion.button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // 🚫 Block if in compare mode
+                      <GlassTooltip title={v.versionNumber === 1 ? "Original version cannot be deleted" : "Delete"} arrow placement="top">
+                        <motion.button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // 🚫 Block if in compare mode
                           if (
                             compareVersions &&
                             (compareVersions.left?.id === v.id ||
@@ -438,10 +443,10 @@ const VersionHistory = forwardRef(({
                           padding: 0,
                           outline: "none"
                         }}
-                        title={v.versionNumber === 1 ? "Original version cannot be deleted" : "Delete"}
                       >
                         {v.versionNumber === 1 ? "🔒" : "🗑️"}
                       </motion.button>
+                    </GlassTooltip>
 
                     </div>
 

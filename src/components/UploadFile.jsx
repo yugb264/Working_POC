@@ -4,6 +4,7 @@ import apiClient from '../service/apiclient';
 import toast from "react-hot-toast";
 import { showSuccess } from '../utils/toast';
 import { parseApiError } from '../utils/errorParser';
+import GlassTooltip from './GlassTooltip';
 
 export default function UploadFile({ onUploadSuccess }) {
   const [isUploading, setIsUploading] = useState(false);
@@ -117,9 +118,17 @@ export default function UploadFile({ onUploadSuccess }) {
       {/*  FILE INFO (OUTSIDE BOX) */}
       {selectedFile && (
         <div style={{ marginTop: '15px', textAlign: 'center' }}>
-          <div style={{ marginBottom: '10px', fontWeight: '500' }}>
-            📄 {selectedFile.name}
-          </div>
+          <GlassTooltip title={selectedFile.name} arrow placement="top">
+            <div style={{ 
+              marginBottom: '10px', 
+              fontWeight: '500',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis'
+            }}>
+              📄 {selectedFile.name}
+            </div>
+          </GlassTooltip>
 
           {/* BUTTONS OUTSIDE */}
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
