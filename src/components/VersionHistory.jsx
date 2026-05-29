@@ -53,6 +53,9 @@ const VersionHistory = forwardRef(({
     version: async (id) => {
       try {
         await apiClient.delete(`/document/${documentId}/versions/${id}`);
+        if (compareFrom?.id === id) {
+          setCompareFrom(null);
+        }
         setVersions(prev => {
           const nextVersions = prev.filter(v => v.id !== id);
           versionsRef.current = nextVersions;
@@ -155,7 +158,18 @@ const VersionHistory = forwardRef(({
       showError("You cannot compare same versions");
       setCompareFrom(null);
     } else {
-      // Trigger compare
+
+      
+      const stillExists = versionsRef.current.some(
+        v => v.id === compareFrom.id
+      );
+    
+      if (!stillExists) {
+        showError("Selected compare version no longer exists.");
+        setCompareFrom(null);
+        return;
+      }
+    
       onCompare(compareFrom, version);
       setCompareFrom(null);
     }
@@ -217,8 +231,19 @@ const VersionHistory = forwardRef(({
                     if (documentId !== doc.id) e.currentTarget.style.background = 'rgba(0,0,0,0.2)';
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div onClick={() => handleDocumentClick(doc.id)}>📄 {doc.fileName}</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
+                    <div 
+                      onClick={() => handleDocumentClick(doc.id)}
+                      style={{
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        flex: 1
+                      }}
+                      title={doc.fileName}
+                    >
+                      📄 {doc.fileName}
+                    </div>
                     <motion.button
                       onClick={(e) => {
                         e.stopPropagation();
