@@ -6,11 +6,12 @@ import apiClient from "../service/apiclient";
 import { ONLYOFFICE_DOCUMENT_SERVER_URL } from "../config/appConfig";
 import { parseApiError } from "../utils/errorParser";
 
-export default function Editor({ documentId, versionId, isReadOnly = false }) {
+export default function Editor({ documentId, versionId, isReadOnly = false,isCompareMode = false}) {
   console.log("EDITOR RENDER:", {
     documentId,
     versionId,
-    isReadOnly
+    isReadOnly,
+    
   });
 
   const [config, setConfig] = useState(null);
@@ -19,20 +20,47 @@ export default function Editor({ documentId, versionId, isReadOnly = false }) {
   const [editorKey, setEditorKey] = useState(0);
   const editorKeyRef = useRef(0);
   const saveTriggeredRef = useRef(false);
- 
+  const editorDomId = isCompareMode
+  ? `onlyoffice-editor-${versionId}`
+  : "onlyoffice-editor";
 
   const destroyEditor = useCallback(() => {
     try {
-      const id = `docxEditor_${documentId}_${editorKeyRef.current}`;
+      const id = editorDomId;
+      console.log("🧨 destroyEditor CALLED");
+      console.log("🧨 editorDomId:", id);
+      console.log("🧨 instances BEFORE:", window.DocEditor?.instances);
       const editor = window.DocEditor?.instances?.[id];
-
-      if (editor && editor.destroyEditor) {
-        editor.destroyEditor();
+  
+      if (editor) {
+        console.log("🧹 Fully destroying editor:", id);
+  
+        try {
+          editor.destroyEditor?.();
+          console.log("✅ destroyEditor() success");
+        } catch (e) {
+          console.warn("destroyEditor failed", e);
+        }
+  
+        // VERY IMPORTANT
+        delete window.DocEditor.instances[id];
+        console.log("🗑️ instance deleted");
+      }
+      else {
+        console.log("⚠️ No existing editor found");
+      }
+      console.log("🧨 instances AFTER:", window.DocEditor?.instances);
+      // ALSO CLEAR CONTAINER
+      const container = document.getElementById(id);
+  
+      if (container) {
+        container.innerHTML = "";
+        console.log("🧼 container cleared");
       }
     } catch (e) {
       console.warn("Destroy failed", e);
     }
-  }, [documentId]);
+  }, [editorDomId]);
   useEffect(() => {
     let timer;
 
@@ -43,7 +71,8 @@ export default function Editor({ documentId, versionId, isReadOnly = false }) {
     }
 
     const loadEditor = async () => {
-
+     
+      destroyEditor();
 
       try {
 
@@ -113,8 +142,16 @@ export default function Editor({ documentId, versionId, isReadOnly = false }) {
 
         // ✅ small delay REQUIRED for OnlyOffice
         timer = setTimeout(() => {
-          const nextEditorKey = Date.now();
+          const nextEditorKey = `${documentId}-${versionId || "latest"}`;
           editorKeyRef.current = nextEditorKey;
+          console.log("🚀 Creating NEW editor", {
+            documentId,
+            versionId,
+            editorDomId
+          });
+          console.log("🔑 ONLYOFFICE KEY:", returnedConfig.document.key);
+          console.log("📄 VERSION:", returnedConfig.document.title);
+          console.log("📦 FULL CONFIG:", returnedConfig);
           setConfig(returnedConfig);
           setEditorKey(nextEditorKey);
 
@@ -135,13 +172,16 @@ export default function Editor({ documentId, versionId, isReadOnly = false }) {
 
     return () => {
       if (timer) clearTimeout(timer);
+      destroyEditor();
     };
+ 
 
   }, [documentId, versionId, isReadOnly, destroyEditor]);
 
 
   const onDocumentReady = () => {
-    console.log("✅ ONLYOFFICE Document Ready");
+    console.log("✅ ONLYOFFICE READY");
+  console.log("📦 Active instances:", window.DocEditor?.instances);
   };
 
   if (!documentId) {
@@ -178,7 +218,7 @@ export default function Editor({ documentId, versionId, isReadOnly = false }) {
       {config && (
         <DocumentEditor
           key={editorKey}
-          id={`docxEditor_${documentId}_${versionId || "latest"}_${editorKey}`}
+          id={editorDomId}
           documentServerUrl={ONLYOFFICE_DOCUMENT_SERVER_URL}
           config={config}
           events_onDocumentReady={onDocumentReady}
