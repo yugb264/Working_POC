@@ -23,8 +23,9 @@ export default function Editor({ documentId, versionId, isReadOnly = false,isCom
   const editorDomId = isCompareMode
   ? `onlyoffice-editor-${versionId}`
   : "onlyoffice-editor";
+  const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-  const destroyEditor = useCallback(() => {
+  const destroyEditor = useCallback(async() => {
     try {
       const id = editorDomId;
       console.log("🧨 destroyEditor CALLED");
@@ -38,6 +39,7 @@ export default function Editor({ documentId, versionId, isReadOnly = false,isCom
         try {
           editor.destroyEditor?.();
           console.log("✅ destroyEditor() success");
+          await sleep(700);
         } catch (e) {
           console.warn("destroyEditor failed", e);
         }
@@ -65,14 +67,17 @@ export default function Editor({ documentId, versionId, isReadOnly = false,isCom
     let timer;
 
     if (!documentId) {
-      destroyEditor();
-      setConfig(null);
+      (async () => {
+        await destroyEditor();
+        setConfig(null);
+      })();
+    
       return;
     }
 
     const loadEditor = async () => {
      
-      destroyEditor();
+     await destroyEditor();
 
       try {
 
@@ -158,7 +163,7 @@ export default function Editor({ documentId, versionId, isReadOnly = false,isCom
           setTimeout(() => {
             setIsSwitching(false); // hide overlay AFTER mount
           }, 400);
-        }, 200);
+        }, 1000);
 
       } catch (err) {
         console.error(err);
@@ -172,7 +177,10 @@ export default function Editor({ documentId, versionId, isReadOnly = false,isCom
 
     return () => {
       if (timer) clearTimeout(timer);
-      destroyEditor();
+    
+      (async () => {
+        await destroyEditor();
+      })();
     };
  
 
