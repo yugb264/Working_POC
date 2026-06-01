@@ -106,6 +106,16 @@ export default function ProtectedApp() {
     console.log("📡 Joining SignalR group:", docIdStr);
     conn.invoke("JoinDocumentGroup", docIdStr);
 
+    conn.on("DocumentSaving", () => {
+      console.log("⏳ Document saving started on backend...");
+      window.dispatchEvent(new CustomEvent("documentSaving"));
+    });
+
+    conn.on("DocumentSaved", () => {
+      console.log("✅ Document saved on backend!");
+      window.dispatchEvent(new CustomEvent("documentSaved"));
+    });
+
     conn.on("DocumentUpdated", async (data) => {
       console.log("🔥 Real-time update received:", data);
 
@@ -128,6 +138,8 @@ export default function ProtectedApp() {
       console.log("🚪 Leaving group:", docIdStr);
       conn.invoke("LeaveDocumentGroup", docIdStr);
       conn.off("DocumentUpdated");
+      conn.off("DocumentSaving");
+      conn.off("DocumentSaved");
     };
   }, [activeDocId, isCompareMode, navigate]);
 

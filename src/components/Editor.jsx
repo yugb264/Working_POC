@@ -20,6 +20,7 @@ export default function Editor({ documentId, versionId, isReadOnly = false,isCom
   const [editorKey, setEditorKey] = useState(0);
   const editorKeyRef = useRef(0);
   const saveTriggeredRef = useRef(false);
+  const [isSaving, setIsSaving] = useState(false);
   const editorDomId = isCompareMode
   ? `onlyoffice-editor-${versionId}`
   : "onlyoffice-editor";
@@ -63,6 +64,23 @@ export default function Editor({ documentId, versionId, isReadOnly = false,isCom
       console.warn("Destroy failed", e);
     }
   }, [editorDomId]);
+
+  useEffect(() => {
+    const handleDocumentSaving = () => setIsSaving(true);
+    const handleDocumentSaved = () => {
+      setIsSaving(false);
+      toast.success("Document saved successfully!");
+    };
+
+    window.addEventListener("documentSaving", handleDocumentSaving);
+    window.addEventListener("documentSaved", handleDocumentSaved);
+
+    return () => {
+      window.removeEventListener("documentSaving", handleDocumentSaving);
+      window.removeEventListener("documentSaved", handleDocumentSaved);
+    };
+  }, []);
+
   useEffect(() => {
     let timer;
 
@@ -127,15 +145,9 @@ export default function Editor({ documentId, versionId, isReadOnly = false,isCom
 
             // When document becomes clean (save finished)
             if (event.data === false && !saveTriggeredRef.current) {
-              console.log("💾 Detected real save");
-
+              console.log("💾 Detected local forcesave trigger");
               saveTriggeredRef.current = true;
-
-              setTimeout(() => {
-                console.log("🚀 Triggering onSave");
-
-
-              }, 2000); // wait for backend
+              // Now we wait for the backend SignalR 'DocumentSaving' event to show the loader!
             }
           },
 
@@ -216,11 +228,47 @@ export default function Editor({ documentId, versionId, isReadOnly = false,isCom
  
       style={{
         height: "100%",
+        position: "relative",
         transition: "opacity 0.35s ease",
         opacity: isSwitching ? 0.4 : 1,
    
       }}
     >
+
+      {/* 💾 SAVING LOADER OVERLAY - Blocks Edit during save */}
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'rgba(15,23,42,0.3)',
+          backdropFilter: 'blur(2px)',
+          display: isSaving ? 'flex' : 'none',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 15,
+          pointerEvents: 'auto', // BLOCK editing
+          color: '#fff'
+        }}
+      >
+        <div style={{
+          background: 'rgba(15,23,42,0.85)',
+          padding: '20px 40px',
+          borderRadius: '12px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '12px',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+          border: '1px solid rgba(255,255,255,0.1)'
+        }}>
+          <div style={{ width: 24, height: 24, border: '3px solid rgba(255,255,255,0.2)', borderTopColor: '#6366f1', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+          <div style={{ fontWeight: 500, fontSize: '15px' }}>Saving Document...</div>
+          <style>
+            {`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}
+          </style>
+        </div>
+      </div>
 
       {/* 🧠 KEEP editor ALWAYS mounted once loaded */}
       {config && (
@@ -235,14 +283,13 @@ export default function Editor({ documentId, versionId, isReadOnly = false,isCom
       )}
 
       {/* 🔄 SMOOTH OVERLAY */}
-      {(!config || isSwitching) && (
-        <div
+      <div
         style={{
           position: 'absolute',
           inset: 0,
           background: 'rgba(15,23,42,0.6)',
           backdropFilter: 'blur(6px)',
-          display: 'flex',
+          display: (!config || isSwitching) ? 'flex' : 'none',
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 10,
@@ -250,25 +297,24 @@ export default function Editor({ documentId, versionId, isReadOnly = false,isCom
           opacity: (!config || isSwitching) ? 1 : 0,
           transition: 'opacity 0.35s ease'
         }}
-        >
-          <div
-            style={{ width: "80%", maxWidth: 800 }}
-          />
-          <div className="skeleton skeleton-title" />
+      >
+        <div
+          style={{ width: "80%", maxWidth: 800 }}
+        />
+        <div className="skeleton skeleton-title" />
 
-          {/* Paragraph lines */}
-          <div className="skeleton skeleton-line" />
-          <div className="skeleton skeleton-line" />
-          <div className="skeleton skeleton-line short" />
+        {/* Paragraph lines */}
+        <div className="skeleton skeleton-line" />
+        <div className="skeleton skeleton-line" />
+        <div className="skeleton skeleton-line short" />
 
-          <div style={{ height: 20 }} />
+        <div style={{ height: 20 }} />
 
-          <div className="skeleton skeleton-line" />
-          <div className="skeleton skeleton-line" />
-          <div className="skeleton skeleton-line short" />
+        <div className="skeleton skeleton-line" />
+        <div className="skeleton skeleton-line" />
+        <div className="skeleton skeleton-line short" />
 
-        </div>
-      )}
+      </div>
 
     </div>
   );
