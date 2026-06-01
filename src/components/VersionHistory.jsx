@@ -28,6 +28,12 @@ const VersionHistory = forwardRef(({
   const [loadingDocs, setLoadingDocs] = useState(false);
   const { showConfirm } = useModal();
   const [compareFrom, setCompareFrom] = useState(null);
+  const [lockedViewingId, setLockedViewingId] = useState(null);
+
+  useEffect(() => {
+    // Reset the lock when navigating to a new document or explicitly picking a version
+    setLockedViewingId(selectedVersionId);
+  }, [documentId, selectedVersionId]);
 
   const latestVersionRef = useRef(0);
   const versionsRef = useRef([]);
@@ -134,6 +140,16 @@ const VersionHistory = forwardRef(({
       setVersions(newData);
       versionsRef.current = newData;
       latestVersionRef.current = newLatest;
+
+      // Lock onto the originally opened Latest version so it doesn't jump when saving in the background
+      if (newData.length > 0) {
+        setLockedViewingId(prev => {
+          if (prev === null && selectedVersionId === null) {
+            return newData[0].id;
+          }
+          return prev;
+        });
+      }
 
       return { hasNewVersion, latestVersionId };
 
@@ -320,9 +336,7 @@ const VersionHistory = forwardRef(({
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {versions.map((v, index) => {
-                const isSelected =
-                  selectedVersionId === v.id ||
-                  (selectedVersionId === null && index === 0);
+                const isSelected = lockedViewingId === v.id;
 
                 return (
                   <div
