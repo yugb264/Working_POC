@@ -7,6 +7,7 @@ import { useMsal } from "@azure/msal-react";
 import { ModalProvider } from "./utils/modals/ModalProvider";
 import { startConnection, getConnection } from "./service/signalrService";
 import { LogOut } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 export default function ProtectedApp() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const { instance } = useMsal();
@@ -202,44 +203,83 @@ export default function ProtectedApp() {
             />
           </aside>
 
-          <main className="main-content" style={{ position: "relative" }}>
-            {isCompareMode && (
-              <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "50px", background: "rgba(15,23,42,0.95)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 16px", zIndex: 20, borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
-                <div style={{ fontSize: "14px", color: "#a5b4fc" }}>
-                  Comparing Version {compareState?.left?.versionNumber || '?'} ↔ Version {compareState?.right?.versionNumber || '?'}
-                </div>
-                <button onClick={() => navigate(`/document/${activeDocId}`)} style={{ background: "#ef4444", color: "#fff", border: "none", padding: "6px 12px", borderRadius: "6px", cursor: "pointer", fontSize: "13px" }}>
-                  Exit Compare
-                </button>
-              </div>
-            )}
-
-            {/*  COMPARE MODE */}
-            {isCompareMode ? (
-              <div style={{ display: "flex", gap: "10px", height: "100%", paddingTop: "50px" }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ padding: "6px", fontSize: "12px", color: "#a5b4fc" }}>
-                    Version {compareState?.left?.versionNumber || '?'}
+          <main className="main-content" style={{ position: "relative", overflow: "hidden" }}>
+            <AnimatePresence>
+              {isCompareMode && (
+                <motion.div 
+                  initial={{ y: -50, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: -50, opacity: 0 }}
+                  style={{ position: "absolute", top: 0, left: 0, right: 0, height: "50px", background: "rgba(15,23,42,0.95)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 16px", zIndex: 20, borderBottom: "1px solid rgba(255,255,255,0.1)" }}
+                >
+                  <div style={{ fontSize: "14px", color: "#a5b4fc" }}>
+                    Comparing Version {compareState?.left?.versionNumber || '?'} ↔ Version {compareState?.right?.versionNumber || '?'}
                   </div>
-                  <Editor key={`left-${compareLeftId}`} documentId={activeDocId} versionId={compareLeftId} isReadOnly  isCompareMode={true} />
-                </div>
+                  <button onClick={() => navigate(`/document/${activeDocId}`)} style={{ background: "#ef4444", color: "#fff", border: "none", padding: "6px 12px", borderRadius: "6px", cursor: "pointer", fontSize: "13px" }}>
+                    Exit Compare
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-                <div style={{ flex: 1 }}>
-                  <div style={{ padding: "6px", fontSize: "12px", color: "#a5b4fc" }}>
-                    Version {compareState?.right?.versionNumber || '?'}
-                  </div>
-                  <Editor key={`right-${compareRightId}`} documentId={activeDocId} versionId={compareRightId} isReadOnly  isCompareMode={true} />
-                </div>
-              </div>
-            ) : (
-              <Editor
-                key={`${activeDocId || "none"}-${activeVersionId || "latest"}`}
-                documentId={activeDocId}
-                versionId={activeVersionId}
-                isCompareMode={false}
-                
-              />
-            )}
+            <motion.div layout style={{ display: "flex", gap: isCompareMode ? "10px" : "0px", height: "100%", paddingTop: isCompareMode ? "50px" : "0px", transition: { duration: 0.5, ease: "easeInOut" } }}>
+                <AnimatePresence mode="popLayout">
+                  {!isCompareMode ? (
+                    <motion.div 
+                       layout
+                       key="single-editor"
+                       initial={{ opacity: 0, scale: 0.95 }}
+                       animate={{ opacity: 1, scale: 1 }}
+                       exit={{ opacity: 0, scale: 0.95 }}
+                       transition={{ duration: 0.4 }}
+                       style={{ flex: 1, height: "100%" }}
+                    >
+                      <Editor
+                        key={`${activeDocId || "none"}-${activeVersionId || "latest"}`}
+                        documentId={activeDocId}
+                        versionId={activeVersionId}
+                        isCompareMode={false}
+                      />
+                    </motion.div>
+                  ) : (
+                    <>
+                      <motion.div 
+                        layout
+                        key="compare-left"
+                        initial={{ opacity: 0, x: -30 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -30 }}
+                        transition={{ duration: 0.4, delay: 0.1 }}
+                        style={{ flex: 1, height: "100%", display: "flex", flexDirection: "column" }}
+                      >
+                        <div style={{ padding: "6px", fontSize: "12px", color: "#a5b4fc", flexShrink: 0 }}>
+                          Version {compareState?.left?.versionNumber || '?'}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                           <Editor key={`left-${compareLeftId}`} documentId={activeDocId} versionId={compareLeftId} isReadOnly isCompareMode={true} />
+                        </div>
+                      </motion.div>
+
+                      <motion.div 
+                        layout
+                        key="compare-right"
+                        initial={{ opacity: 0, x: 30 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 30 }}
+                        transition={{ duration: 0.4, delay: 0.2 }}
+                        style={{ flex: 1, height: "100%", display: "flex", flexDirection: "column" }}
+                      >
+                        <div style={{ padding: "6px", fontSize: "12px", color: "#a5b4fc", flexShrink: 0 }}>
+                          Version {compareState?.right?.versionNumber || '?'}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                           <Editor key={`right-${compareRightId}`} documentId={activeDocId} versionId={compareRightId} isReadOnly isCompareMode={true} />
+                        </div>
+                      </motion.div>
+                    </>
+                  )}
+                </AnimatePresence>
+            </motion.div>
           </main>
 
         </div>
