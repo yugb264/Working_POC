@@ -219,9 +219,13 @@ const VersionHistory = forwardRef(({
           }}
         >
           {loadingDocs ? (
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-              Loading documents...
-            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              {[1, 2, 3].map(i => (
+                <div key={i} style={{ padding: '0.75rem 1rem', background: 'rgba(0,0,0,0.2)', borderRadius: 'var(--radius-md)' }}>
+                  <div className="skeleton skeleton-title" style={{ width: '80%', height: '18px', margin: 0 }} />
+                </div>
+              ))}
+            </div>
           ) : documents?.length === 0 ? (
             <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
               No documents uploaded yet.
@@ -326,9 +330,18 @@ const VersionHistory = forwardRef(({
               Select a document to view history
             </p>
           ) : loadingVersions ? (
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-              Loading versions...
-            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {[1, 2].map(i => (
+                <div key={i} style={{ padding: '1rem', background: 'rgba(0,0,0,0.2)', borderRadius: 'var(--radius-md)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <div className="skeleton skeleton-title" style={{ width: '40%', height: '20px', margin: 0 }} />
+                    <div className="skeleton" style={{ width: '60px', height: '22px', borderRadius: '6px', margin: 0 }} />
+                  </div>
+                  <div className="skeleton skeleton-line short" style={{ marginBottom: '0.5rem' }} />
+                  <div className="skeleton skeleton-line" style={{ width: '50%', marginBottom: 0 }} />
+                </div>
+              ))}
+            </div>
           ) : versions?.length === 0 ? (
             <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
               No alternate versions yet.
