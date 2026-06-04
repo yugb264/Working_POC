@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { styled } from '@mui/material/styles';
 import Tooltip, { tooltipClasses } from '@mui/material/Tooltip';
 
-const GlassTooltip = styled(({ className, ...props }) => (
+const StyledTooltip = styled(({ className, ...props }) => (
   <Tooltip {...props} classes={{ popper: className }} />
 ))(({ theme }) => ({
   [`& .${tooltipClasses.tooltip}`]: {
@@ -25,5 +25,37 @@ const GlassTooltip = styled(({ className, ...props }) => (
     },
   },
 }));
+
+const GlassTooltip = (props) => {
+  const [open, setOpen] = useState(false);
+
+  const handleScroll = useCallback(() => {
+    if (open) {
+      setOpen(false);
+    }
+  }, [open]);
+
+  useEffect(() => {
+    window.addEventListener('scroll', handleScroll, true); // true for capture phase to catch all scrolls
+    return () => {
+      window.removeEventListener('scroll', handleScroll, true);
+    };
+  }, [handleScroll]);
+
+  return (
+    <StyledTooltip 
+      {...props} 
+      open={props.open !== undefined ? props.open : open}
+      onOpen={(e) => {
+        setOpen(true);
+        if (props.onOpen) props.onOpen(e);
+      }}
+      onClose={(e) => {
+        setOpen(false);
+        if (props.onClose) props.onClose(e);
+      }}
+    />
+  );
+};
 
 export default GlassTooltip;
